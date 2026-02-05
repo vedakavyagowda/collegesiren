@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siren Management | GPWH</title>
+    <style>
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --error: #ef4444; --success: #22c55e; }
+        body { background-color: var(--bg); font-family: 'Inter', sans-serif; margin: 0; color: #334155; }
+        header { background: #fff; padding: 12px 20px; border-bottom: 2px solid #0056b3; display: flex; align-items: center; justify-content: space-between; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .logo-box { width: 45px; height: 45px; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; background: #fff; }
+        .logo-box img { width: 100%; height: 100%; object-fit: contain; }
+        .header-text h1 { margin: 0; font-size: 13px; text-transform: uppercase; color: var(--primary); }
+        .header-text p { margin: 0; font-size: 9px; font-weight: 800; color: #0056b3; }
+        .logout-link { color: var(--error); font-size: 11px; font-weight: 700; cursor: pointer; border: 1px solid #fee2e2; padding: 5px 10px; border-radius: 6px; }
+        .login-wrap { max-width: 360px; margin: 50px auto; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .input-group { position: relative; width: 100%; margin: 8px 0; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        .eye-icon { position: absolute; right: 12px; top: 12px; cursor: pointer; opacity: 0.6; z-index: 10; }
+        .error-box { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 12px; margin-bottom: 15px; display: none; border: 1px solid #fecaca; }
+        .loader { border: 2px solid #f3f3f3; border-top: 2px solid white; border-radius: 50%; width: 14px; height: 14px; animation: spin 0.8s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-size: 11px; font-weight: 800; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; text-transform: uppercase; }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .siren-btn { width: 120px; height: 120px; border-radius: 50%; border: 6px solid #f1f5f9; background: var(--success); color: white; font-weight: 800; margin: 15px auto; display: block; cursor: pointer; transition: 0.3s; }
+        .siren-btn.ringing { background: var(--error); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .mode-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+        .mode-card.active { border-color: var(--accent); background: #eff6ff; color: var(--accent); }
+        .mode-card.active::after { content: '✓'; background: var(--accent); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .alarm-row { background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .full { grid-column: 1 / -1; }
+        .hidden { display: none !important; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; background: var(--accent); color: white; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="brand">
+        <div class="logo-box"><img src="logo.png" onerror="this.src='https://via.placeholder.com/45?text=L'"></div>
+        <div class="header-text">
+            <h1>GPW Holenarasipura</h1>
+            <p>SIREN MANAGEMENT SYSTEM</p>
+        </div>
+    </div>
+    <div id="logoutSection" class="hidden"><span class="logout-link" onclick="auth.signOut()">LOGOUT</span></div>
+</header>
+
+<div id="loginPage" class="login-wrap">
+    <div class="card">
+        <h2 style="margin:0 0 15px 0; font-size: 18px;">Admin Login</h2>
+        <div id="authError" class="error-box">Invalid credentials. Check email/password.</div>
+        <input type="email" id="email" placeholder="Email Address">
+        <div class="input-group">
+            <input type="password" id="password" placeholder="Password">
+            <span class="eye-icon" onclick="togglePass('password')">👁️</span>
+        </div>
+        <div style="font-size:12px; margin-bottom:15px; display:flex; justify-content:space-between;">
+            <label><input type="checkbox" id="remember"> Remember me</label>
+            <span id="forgotBtn" onclick="forgotPass()" style="color:var(--accent); cursor:pointer; font-weight:700">Forgot Password?</span>
+        </div>
+        <button id="loginBtn" class="btn" onclick="handleLogin()">SIGN IN</button>
+    </div>
+</div>
+
+<div id="appPage" class="hidden">
+    <div class="tab-bar">
+        <button class="tab-btn active" id="btn-tab-dash" onclick="switchTab('tab-dash', this)">Dashboard</button>
+        <button class="tab-btn" id="btn-tab-settings" onclick="switchTab('tab-settings', this)">Settings</button>
+        <button class="tab-btn" id="btn-tab-account" onclick="switchTab('tab-account', this)">Account</button>
+    </div>
+    <div style="padding: 20px; max-width: 500px; margin: 0 auto;">
+        <div id="tab-dash" class="tab-content">
+            <div class="card" style="text-align:center">
+                <p style="font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">Manual Siren Trigger</p>
+                <button id="sirenBtn" class="siren-btn" onclick="toggleSiren()">
+            <div id="sirenTxt">TURN ON</div>
+            <span id="triggerStatus" style="position: absolute; bottom: 20px; left: 0; right: 0; font-size: 10px; opacity: 0.8;">[OFF]</span>
+        </button>
+                <p id="sirenStatus" style="font-weight:800; font-size:13px; color:#64748b">SYSTEM READY</p>
+                <hr style="margin:20px 0; border:0; border-top:1px solid #f1f5f9">
+                <p style="font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; text-align: left;">Select Active Mode</p>
+                <div class="mode-card" id="m_regular" onclick="updateMode('regular')">Regular Mode</div>
+                <div class="mode-card" id="m_exam" onclick="updateMode('exam')">Examination Mode</div>
+                <div class="mode-card" id="m_special" onclick="updateMode('special')">Special Event</div>
+            </div>
+        </div>
+        <div id="tab-settings" class="tab-content hidden">
+            <div class="card">
+                <label style="font-size:11px; font-weight:800;">Configuration Mode</label>
+                <select id="configMode" onchange="syncCountWithDB()">
+                    <option value="regular">Regular Mode</option>
+                    <option value="exam">Exam Mode</option>
+                    <option value="special">Special Mode</option>
+                </select>
+                <label style="font-size:11px; font-weight:800;">Total Alarms</label>
+                <input type="number" id="alarmCount" value="0" min="0" max="25" oninput="loadAlarmUI()">
+                <div id="alarmList"></div>
+                <button class="btn" style="margin-top:10px" onclick="saveSchedules()">SAVE SETTINGS</button>
+            </div>
+        </div>
+        <div id="tab-account" class="tab-content hidden">
+            <div class="card">
+                <h3>Account Security</h3>
+                <p id="accountMsg" style="font-size: 12px; margin-bottom: 10px; display: none; padding: 10px; border-radius: 6px;"></p>
+                <button class="btn" style="background:#f1f5f9; color:var(--primary)" onclick="resetPass()">CHANGE PASSWORD</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyDpdIb1KL0z8ha5dEsKopwbSokE7jCxt68", 
+        authDomain: "websirentest.firebaseapp.com",
+        databaseURL: "https://websirentest-default-rtdb.firebaseio.com",
+        projectId: "websirentest",
+        storageBucket: "websirentest.appspot.com",
+        appId: "1:223793739773:web:651543788764020a324911"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    function handleLogin() {
+        const e = document.getElementById('email').value, p = document.getElementById('password').value;
+        const btn = document.getElementById('loginBtn'), err = document.getElementById('authError');
+        const rem = document.getElementById('remember').checked;
+        if(!e || !p) 
+        {
+            err.innerText = "Please enter both email and password.";
+            err.style.display = "block";
+            return;
+        }
+        err.style.display = "none"; btn.disabled = true;
+        btn.innerHTML = `<span class="loader"></span> SIGNING IN...`;
+        auth.setPersistence(rem ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION)
+        .then(() => auth.signInWithEmailAndPassword(e, p))
+        .catch(() => { resetLoginButton(); err.innerText = "Invalid credentials. Check email/password.";
+        err.style.background = "#fee2e2"; // Ensure it's red
+        err.style.color = "#b91c1c";
+        err.style.display = "block"; // MAKE IT VISIBLE 
+        });
+    }
+
+    // Trigger login when "Enter" is pressed in the password field
+document.getElementById("password").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault(); // Prevents page reload
+        handleLogin();
+    }
+});
+
+// Optional: Also trigger for the email field
+document.getElementById("email").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        handleLogin();
+    }
+});
+
+    function resetLoginButton() {
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = false; btn.innerText = "SIGN IN";
+    }
+
+    auth.onAuthStateChanged(user => {
+        document.getElementById('loginPage').classList.toggle('hidden', user);
+        document.getElementById('appPage').classList.toggle('hidden', !user);
+        document.getElementById('logoutSection').classList.toggle('hidden', !user);
+        if(!user) { resetLoginButton(); document.getElementById('password').value = ""; }
+        else { 
+            switchTab('tab-dash', document.getElementById('btn-tab-dash'));
+            syncDashboard(); }
+    });
+
+    function togglePass(id) { const x = document.getElementById(id); x.type = x.type === "password" ? "text" : "password"; }
+    
+    function switchTab(id, b) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.remove('hidden'); b.classList.add('active');
+        if(id === 'tab-settings') syncCountWithDB();
+    }
+
+    function syncDashboard() {
+    // 1. Fetch Active Mode and Update Select Dropdown
+    db.ref('siren_system/active_mode').on('value', snap => {
+        const m = snap.val() || 'regular';
+        document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+        document.getElementById('m_' + m)?.classList.add('active');
+        // This line ensures the settings dropdown matches the database
+        document.getElementById('configMode').value = m;
+    });
+
+    // 2. Fetch Manual Status and Update Button Labels
+    db.ref('siren_system/manual_trigger/status').on('value', snap => {
+        const isOn = snap.val();
+        const b = document.getElementById('sirenBtn'), t = document.getElementById('sirenStatus');
+        const lbl = document.getElementById('triggerStatus'), txt = document.getElementById('sirenTxt');
+        
+        b.className = isOn ? 'siren-btn ringing' : 'siren-btn';
+        txt.innerText = isOn ? 'TURN OFF' : 'TURN ON';
+        lbl.innerText = isOn ? '[ON]' : '[OFF]';
+        t.innerText = isOn ? "SIREN RINGING" : "SYSTEM READY";
+    });
+}
+    function toggleSiren() { const ref = db.ref('siren_system/manual_trigger/status'); ref.once('value', s => ref.set(!s.val())); }
+    function updateMode(m) { db.ref('siren_system/active_mode').set(m); }
+
+    function syncCountWithDB() {
+        const mode = document.getElementById('configMode').value;
+        db.ref(`siren_system/schedules/${mode}`).once('value', snap => {
+            const data = snap.val() || [];
+            document.getElementById('alarmCount').value = data.length;
+            loadAlarmUI(); 
+        });
+    }
+
+    function loadAlarmUI() {
+    const mode = document.getElementById('configMode').value;
+    const count = parseInt(document.getElementById('alarmCount').value) || 0;
+    const list = document.getElementById('alarmList');
+    
+    db.ref(`siren_system/schedules/${mode}`).once('value', snap => {
+        const savedData = snap.val() || [];
+        list.innerHTML = "";
+        
+        for(let i=0; i<count; i++) {
+            const row = document.createElement('div'); row.className = 'alarm-row';
+            const dateVal = savedData[i]?.date || '';
+            const timeVal = savedData[i]?.time || '';
+            const durVal = savedData[i]?.duration || '6';
+            
+            // Fixed: "Special" mode now correctly triggers date field immediately
+            const dateH = mode === 'special' ? `<div class="full"><label>Event Date</label><input type="date" class="a-date" value="${dateVal}"></div>` : ``;
+            
+            row.innerHTML = `${dateH}<div><label>Time</label><input type="time" class="a-time" value="${timeVal}"></div>
+                <div><label>Length</label><select class="a-dur"><option value="3" ${durVal==3?'selected':''}>Short</option>
+                <option value="6" ${durVal==6?'selected':''}>Medium</option><option value="12" ${durVal==12?'selected':''}>Long</option></select></div>`;
+            list.appendChild(row);
+        }
+    });
+}
+
+    function saveSchedules() {
+        const mode = document.getElementById('configMode').value, rows = document.querySelectorAll('.alarm-row');
+        let data = []; 
+        rows.forEach(r => { 
+            const t = r.querySelector('.a-time').value;
+            data.push({ time: t, duration: r.querySelector('.a-dur').value, date: r.querySelector('.a-date')?.value || null }); 
+        });
+        db.ref(`siren_system/schedules/${mode}`).set(data).then(() => alert("Settings Saved."));
+    }
+
+    function resetPass() {
+    const msg = document.getElementById('accountMsg');
+    const userEmail = auth.currentUser.email;
+
+    auth.sendPasswordResetEmail(userEmail)
+    .then(() => {
+        msg.innerText = "Reset link sent to " + userEmail + ". Please check your inbox.";
+        msg.style.background = "#dcfce7"; // Success Green
+        msg.style.color = "#166534";
+        msg.style.display = "block";
+        
+        // Hide it after 5 seconds so the UI stays clean
+        setTimeout(() => { msg.style.display = "none"; }, 5000);
+    })
+    .catch((error) => {
+        msg.innerText = "Error: " + error.message;
+        msg.style.background = "#fee2e2"; // Error Red
+        msg.style.color = "#b91c1c";
+        msg.style.display = "block";
+    });
+}
+function forgotPass() { 
+    const e = document.getElementById('email').value.trim(); 
+    const err = document.getElementById('authError');
+    const btn = document.getElementById('forgotBtn'); // Matches the ID we added
+    
+    if(!e) {
+        err.innerText = "Please enter your email address first..";
+        err.style.background = "#fee2e2"; 
+        err.style.color = "#b91c1c";
+        err.style.display = "block";
+        return;
+    }
+
+    // --- Processing State ---
+    const originalText = btn.innerText;
+    btn.innerText = "Sending..."; 
+    btn.style.opacity = "0.5";
+    btn.style.pointerEvents = "none"; // Stop user from clicking again
+    err.style.display = "none"; 
+
+    auth.sendPasswordResetEmail(e)
+    .then(() => {
+        err.innerText = "Reset link sent! Check your Inbox and SPAM folder.";
+        err.style.background = "#dcfce7"; 
+        err.style.color = "#166534";
+        err.style.display = "block";
+    })
+    .catch((error) => {
+        err.innerText = "Error: " + error.message;
+        err.style.background = "#fee2e2";
+        err.style.color = "#b91c1c";
+        err.style.display = "block";
+    })
+    .finally(() => {
+        // --- Restore original state ---
+        btn.innerText = originalText;
+        btn.style.opacity = "1";
+        btn.style.pointerEvents = "auto";
+    });
+}
+</script>
+</body>
+</html>
