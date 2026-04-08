@@ -20,9 +20,6 @@
         input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; margin-top: 5px; }
         label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-top: 10px; display: block; }
         .eye-icon { position: absolute; right: 12px; top: 12px; cursor: pointer; opacity: 0.6; z-index: 10; }
-        .error-box { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 6px; font-size: 12px; margin-bottom: 15px; display: none; border: 1px solid #fecaca; }
-        .loader { border: 2px solid #f3f3f3; border-top: 2px solid white; border-radius: 50%; width: 14px; height: 14px; animation: spin 0.8s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; }
         .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-size: 11px; font-weight: 800; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; text-transform: uppercase; }
         .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -31,7 +28,6 @@
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .mode-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px 15px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; transition: 0.2s; }
         .mode-card.active { border-color: var(--accent); background: #eff6ff; color: var(--accent); }
-        .mode-card.active::after { content: '✓'; background: var(--accent); color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
         .section-label { font-size: 10px; font-weight: 800; color: #94a3b8; margin: 15px 0 8px 0; text-transform: uppercase; text-align: left; letter-spacing: 0.5px; }
         .alarm-row { background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e2e8f0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .hidden { display: none !important; }
@@ -54,7 +50,6 @@
 <div id="loginPage" class="login-wrap">
     <div class="card">
         <h2 style="margin:0 0 15px 0; font-size: 18px;">Admin Login</h2>
-        <div id="authError" class="error-box"></div>
         <input type="email" id="email" placeholder="Email Address">
         <div class="input-group">
             <input type="password" id="password" placeholder="Password">
@@ -105,8 +100,7 @@
                 </select>
 
                 <label>Specific Schedule</label>
-                <select id="configSub" onchange="syncData()">
-                    </select>
+                <select id="configSub" onchange="syncData()"></select>
 
                 <hr style="margin:15px 0; border:0; border-top:1px solid #f1f5f9">
 
@@ -144,7 +138,6 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
-    // AUTH
     function handleLogin() {
         const e = document.getElementById('email').value, p = document.getElementById('password').value;
         auth.signInWithEmailAndPassword(e, p).catch(x => alert(x.message));
@@ -157,40 +150,72 @@
         if(user) { syncDash(); updateSubOptions(); }
     });
 
-    // DASHBOARD LOGIC
     function syncDash() {
-        // Sync Main Mode
-        db.ref('siren_system/active_mode').on('value', snap => {
-            const m = snap.val() || 'regular';
-            document.querySelectorAll('#tab-dash .mode-card').forEach(c => c.classList.remove('active'));
-            document.getElementById('m_' + m)?.classList.add('active');
-            
-            // Show session selection only if exam is active
-            document.getElementById('examSessions').classList.toggle('hidden', m !== 'exam');
-        });
+    // 1. Sync Main Mode (Regular vs Exam)
+    db.ref('siren_system/active_mode').on('value', snap => {
+        const m = snap.val() || 'regular';
+        
+        // Remove active class from all mode cards
+        document.getElementById('m_regular').classList.remove('active');
+        document.getElementById('m_exam').classList.remove('active');
+        
+        // Highlight the current active mode
+        const activeCard = document.getElementById('m_' + m);
+        if (activeCard) activeCard.classList.add('active');
+        
+        // Toggle the visibility of the Exam Session selection area
+        const examArea = document.getElementById('examSessions');
+        if (m === 'exam') {
+            examArea.classList.remove('hidden');
+        } else {
+            examArea.classList.add('hidden');
+        }
+    });
 
-        // Sync Exam Session
-        db.ref('siren_system/active_session').on('value', snap => {
-            const s = snap.val() || 'morning';
-            ['morning', 'afternoon', 'full'].forEach(id => document.getElementById('s_' + id)?.classList.remove('active'));
-            document.getElementById('s_' + s)?.classList.add('active');
+    // 2. Sync Active Session (Morning, Afternoon, Full)
+    db.ref('siren_system/active_session').on('value', snap => {
+        const s = snap.val() || 'morning';
+        
+        // Select all possible session cards and clear the active class
+        const sessionIds = ['s_morning', 's_afternoon', 's_full'];
+        sessionIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
         });
+        
+        // Apply the active class to the session currently stored in Firebase
+        const activeSessionCard = document.getElementById('s_' + s);
+        if (activeSessionCard) {
+            activeSessionCard.classList.add('active');
+        }
+    });
 
-        // Sync Manual Siren
-        db.ref('siren_system/manual_trigger/status').on('value', snap => {
-            const isOn = snap.val();
-            const b = document.getElementById('sirenBtn'), txt = document.getElementById('sirenTxt'), lbl = document.getElementById('triggerStatus');
-            b.className = isOn ? 'siren-btn ringing' : 'siren-btn';
-            txt.innerText = isOn ? 'TURN OFF' : 'TURN ON';
-            lbl.innerText = isOn ? '[ON]' : '[OFF]';
-        });
+    // 3. Sync Manual Siren Button State
+    db.ref('siren_system/manual_trigger/status').on('value', snap => {
+        const isOn = snap.val();
+        const btn = document.getElementById('sirenBtn');
+        const txt = document.getElementById('sirenTxt');
+        const lbl = document.getElementById('triggerStatus');
+        
+        if (isOn) {
+            btn.className = 'siren-btn ringing';
+            txt.innerText = 'TURN OFF';
+            lbl.innerText = '[ON]';
+        } else {
+            btn.className = 'siren-btn';
+            txt.innerText = 'TURN ON';
+            lbl.innerText = '[OFF]';
+        }
+    });
+}
+
+    function updateMode(m) { 
+        db.ref('siren_system/active_mode').set(m); 
+        if(m === 'exam') { db.ref('siren_system/active_session').set('full'); }
     }
-
-    function updateMode(m) { db.ref('siren_system/active_mode').set(m); if(m === 'exam') {db.ref('siren_system/active_session').set('full');}}
     function updateSession(s) { db.ref('siren_system/active_session').set(s); }
     function toggleSiren() { const r = db.ref('siren_system/manual_trigger/status'); r.once('value', s => r.set(!s.val())); }
 
-    // SETTINGS LOGIC
     function updateSubOptions() {
         const m = document.getElementById('configMode').value, s = document.getElementById('configSub');
         s.innerHTML = "";
@@ -221,10 +246,17 @@
             list.innerHTML = "";
             for(let i=0; i<count; i++) {
                 const row = document.createElement('div'); row.className = 'alarm-row';
-                const t = saved[i]?.time || '', d = saved[i]?.duration || '6', dt = saved[i]?.date || '';
+                const t = saved[i]?.time || '', d = saved[i]?.duration || 'medium', dt = saved[i]?.date || '';
                 let dtH = m === 'special' ? `<div style="grid-column:1/-1"><label>Date</label><input type="date" class="a-date" value="${dt}"></div>` : '';
+                
                 row.innerHTML = `${dtH}<div><label>Time</label><input type="time" class="a-time" value="${t}"></div>
-                                 <div><label>Secs</label><select class="a-dur"><option value="3" ${d==3?'selected':''}>3s</option><option value="6" ${d==6?'selected':''}>6s</option><option value="12" ${d==12?'selected':''}>12s</option></select></div>`;
+                                 <div><label>Duration</label>
+                                    <select class="a-dur">
+                                        <option value="short" ${d=='short'?'selected':''}>Short</option>
+                                        <option value="medium" ${d=='medium'?'selected':''}>Medium</option>
+                                        <option value="long" ${d=='long'?'selected':''}>Long</option>
+                                    </select>
+                                 </div>`;
                 list.appendChild(row);
             }
         });
@@ -240,7 +272,6 @@
         db.ref(`siren_system/schedules/${m}/${s}`).set(data).then(() => alert("Saved!"));
     }
 
-    // UTILS
     function switchTab(id, b) {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
